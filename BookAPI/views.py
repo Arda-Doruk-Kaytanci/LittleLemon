@@ -1,12 +1,9 @@
-from django.shortcuts import render
 from django.contrib.auth.models import User
-# Create your views here.
-
+from rest_framework.authentication import TokenAuthentication
 from .models import MenuItem, Category
-from .serializers import MenuSerializer, CategorySerializer, UserSerializer 
-from rest_framework import generics
+from .serializers import MenuSerializer, CategorySerializer, UserSerializer, serializers
+from rest_framework import generics, permissions
 from django.shortcuts import redirect
-
 class MenuView(generics.ListCreateAPIView):
     queryset = MenuItem.objects.all()
     serializer_class = MenuSerializer
@@ -22,5 +19,7 @@ class CategoryView(generics.ListCreateAPIView):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
 class UserView(generics.ListCreateAPIView):
+    authentication_classes = [TokenAuthentication]
     queryset = User.objects.all()
     serializer_class = UserSerializer
+    permission_classes = [permissions.IsAuthenticated]
