@@ -38,8 +38,14 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
-    'BookAPI'
+    'rest_framework.authtoken',
+    'djoser',
+    'BookAPI',
 ]
+DJOSER = {
+    "USER_ID_FIELD": "username",
+    "LOGIN_FIELD": "email"
+}
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

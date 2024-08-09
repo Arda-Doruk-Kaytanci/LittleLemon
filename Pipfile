@@ -9,7 +9,6 @@ djangorestframework = "*"
 djangorestframework-xml = "*"
 djoser = "*"
 
-
 [dev-packages]
 
 [requires]

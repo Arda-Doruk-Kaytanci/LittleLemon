@@ -1,9 +1,9 @@
 from django.shortcuts import render
-
+from django.contrib.auth.models import User
 # Create your views here.
 
 from .models import MenuItem, Category
-from .serializers import MenuSerializer, CategorySerializer
+from .serializers import MenuSerializer, CategorySerializer, UserSerializer 
 from rest_framework import generics
 from django.shortcuts import redirect
 
@@ -21,3 +21,6 @@ class MenuSingleItem(generics.RetrieveUpdateAPIView, generics.DestroyAPIView):
 class CategoryView(generics.ListCreateAPIView):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
+class UserView(generics.ListCreateAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
