@@ -1,27 +1,57 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manage Staff</title>
+    <style>
+        .search-box {
+            margin-bottom: 10px;
+        }
+    </style>
 </head>
-
 <body>
     <h2>Manage Staff</h2>
-
+    
     <!-- Display message if any -->
     {% if message %}
-    <p>{{ message }}</p>
+        <p>{{ message }}</p>
     {% endif %}
-
+    
     <!-- Form to assign users as staff -->
     <form method="POST" action="{% url 'manage_staff' %}">
         {% csrf_token %}
-        <label for="username">Username to assign as staff:</label>
-        <input type="text" id="username" name="username" required><br><br>
+        
+        <label for="search">Search user:</label>
+        <input type="text" id="search" class="search-box" placeholder="Type to search...">
+        
+        <label for="username">Select user to assign as staff:</label>
+        <select id="username" name="username" required>
+            <option value="">Select a user</option>
+            {% for user in users %}
+                <option value="{{ user.username }}">{{ user.username }}</option>
+            {% endfor %}
+        </select><br><br>
+        
         <button type="submit">Assign as Staff</button>
     </form>
-</body>
+    
+    <script>
+        // Function to filter the options based on the search query
+        document.getElementById('search').addEventListener('input', function() {
+            var filter = this.value.toUpperCase();
+            var select = document.getElementById('username');
+            var options = select.getElementsByTagName('option');
 
+            for (var i = 1; i < options.length; i++) { // Start from 1 to skip the first "Select a user" option
+                var optionText = options[i].textContent || options[i].innerText;
+                if (optionText.toUpperCase().indexOf(filter) > -1) {
+                    options[i].style.display = "";
+                } else {
+                    options[i].style.display = "none";
+                }
+            }
+        });
+    </script>
+</body>
 </html>

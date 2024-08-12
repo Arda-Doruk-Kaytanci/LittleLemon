@@ -107,9 +107,11 @@ def manage_staff_view(request):
                 except User.DoesNotExist:
                     message = 'User does not exist.'
                 
-                return render(request, 'BookAPI/manage_staff.html', {'message': message})
+                return render(request, 'BookAPI/manage_staff.html', {'message': message, 'users': User.objects.all()})
         
-        return render(request, 'BookAPI/manage_staff.html')
+        # Fetch all users to be shown in the select list
+        users = User.objects.exclude(username=user.username)  # Exclude current user if needed
+        return render(request, 'BookAPI/manage_staff.html', {'users': users})
 
     except AuthenticationFailed:
-        return redirect('login')  # Redirect if token is invalid
+        return redirect('login')
