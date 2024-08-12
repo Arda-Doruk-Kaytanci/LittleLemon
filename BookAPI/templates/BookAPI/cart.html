@@ -8,40 +8,22 @@
 {% if cart_items %}
 <ul>
     {% for item in cart_items %}
-    <li>
-        {{ item.item.name }} - Quantity: {{ item.quantity }} - Price: ${{ item.item.price }} each
-
-        <!-- Form to decrease item quantity -->
-        <form action="{% url 'cart' %}" method="post" style="display:inline;">
+    <li>{{ item.item.name }} - {{ item.quantity }} x {{ item.item.price }}
+        <form method="post" style="display:inline;">
             {% csrf_token %}
             <input type="hidden" name="item_id" value="{{ item.id }}">
-            <input type="hidden" name="action" value="decrease">
-            <button type="submit">Decrease Quantity</button>
-        </form>
-
-        <!-- Form to remove item from cart -->
-        <form action="{% url 'cart' %}" method="post" style="display:inline;">
-            {% csrf_token %}
-            <input type="hidden" name="item_id" value="{{ item.id }}">
-            <input type="hidden" name="action" value="remove">
-            <button type="submit">Remove</button>
+            <button type="submit" name="action" value="decrease">Decrease</button>
+            <button type="submit" name="action" value="remove">Remove</button>
         </form>
     </li>
     {% endfor %}
 </ul>
-
-<hr>
-
-<!-- Display the total price -->
-<p>Total Price: ${{ total_price|floatformat:2 }}</p>
-
-<hr>
-
+<p>Total Price: ${{ total_price }}</p>
 <form method="post">
     {% csrf_token %}
-    <button type="submit">Proceed to Checkout</button>
+    <input type="hidden" name="action" value="finish_order">
+    <button type="submit">Finish Order</button>
 </form>
-
 {% else %}
 <p>Your cart is empty.</p>
 {% endif %}

@@ -26,4 +26,19 @@ class CartItem(models.Model):
     quantity = models.PositiveIntegerField(default=1)
 
     def __str__(self):
-        return f"{self.item.name} (x{self.quantity})"
+        return f"Cart {self.id} - User: {self.user.username}, Quantity: {self.quantity}"
+
+
+class Order(models.Model):
+    delivery_person = models.ForeignKey(
+        User, on_delete=models.PROTECT, null=True, blank=True, default=None
+    )
+    items = models.ManyToManyField(CartItem)  # Relationship with CartItem
+
+    def total_price(self):
+        return sum(item.item.price * item.quantity for item in self.items.all())
+
+    def __str__(self):
+        if self.delivery_person:
+            return f"Order {self.id} by {self.delivery_person.username}"
+        return f"Order {self.id} - Not Assigned"

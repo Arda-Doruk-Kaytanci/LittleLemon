@@ -18,4 +18,6 @@ urlpatterns = [
     path("refresh-token/", views.refresh_token, name="refresh_token"),
     path("login/home/shop", views.shop, name="shop"),
     path("login/home/shop/cart", views.view_cart, name="cart"),
+    path("login/home/show_order", views.view_orders, name="showorder"),
+    path('login/home/assign_order', views.assign_order_view, name='assign_order'),
 ]

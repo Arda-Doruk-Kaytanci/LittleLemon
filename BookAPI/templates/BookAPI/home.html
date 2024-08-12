@@ -9,6 +9,7 @@
 <form action="{% url 'refresh_token' %}" method="post">
     {% csrf_token %}
     <button type="submit">Refresh Token</button>
+    <a href="home/assign_order">Assign Order</a>
 </form>
 {% endif %}
 

@@ -2,7 +2,8 @@ from django.contrib.auth.models import User
 from rest_framework.authentication import TokenAuthentication
 from django.contrib.auth import logout as auth_logout
 from rest_framework_simplejwt.exceptions import TokenError
-from .models import MenuItem, Category, CartItem
+from .forms import AssignOrderForm
+from .models import MenuItem, Category, CartItem, Order
 from .serializers import (
     MenuSerializer,
     CategorySerializer,
@@ -12,7 +13,7 @@ from .serializers import (
     RegisterSerializer,
 )
 from rest_framework_simplejwt.tokens import RefreshToken
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.views.decorators.csrf import csrf_protect
 from django.contrib.auth import authenticate, login
 from rest_framework.decorators import api_view
@@ -284,29 +285,41 @@ def shop(request):
 @login_required
 def view_cart(request):
     if request.method == "POST":
-        item_id = request.POST.get("item_id")
         action = request.POST.get("action")
+        item_id = request.POST.get("item_id")
 
-        if item_id and action:
+        if action == "remove" and item_id:
             try:
                 cart_item = CartItem.objects.get(id=item_id, user=request.user)
-
-                if action == "remove":
-                    cart_item.delete()  # Remove the item if requested
-                elif action == "decrease" and cart_item.quantity > 1:
-                    cart_item.quantity -= 1  # Decrease quantity
-                    cart_item.save()
-                # Optionally handle an "increase" action if needed
-
+                cart_item.delete()
             except CartItem.DoesNotExist:
-                pass  # Handle the case where the item does not exist or does not belong to the user
+                pass
 
-        return redirect("cart")  # Redirect to the cart page after modification
+        elif action == "decrease" and item_id:
+            try:
+                cart_item = CartItem.objects.get(id=item_id, user=request.user)
+                if cart_item.quantity > 1:
+                    cart_item.quantity -= 1
+                    cart_item.save()
+                else:
+                    cart_item.delete()
+            except CartItem.DoesNotExist:
+                pass
 
-    # Retrieve all cart items for the logged-in user
+        elif action == "finish_order":
+            order = Order.objects.create()
+            cart_items = CartItem.objects.filter(user=request.user)
+
+            for item in cart_items:
+                order.items.add(item)
+            cart_items.delete()
+
+            return redirect("cart")
+
+        return redirect("cart")
+
     cart_items = CartItem.objects.filter(user=request.user)
 
-    # Calculate the total price
     total_price = sum(item.item.price * item.quantity for item in cart_items)
 
     return render(
@@ -314,3 +327,47 @@ def view_cart(request):
         "BookAPI/cart.html",
         {"cart_items": cart_items, "total_price": total_price},
     )
+
+
+@login_required
+def view_orders(request):
+    if request.user.groups.filter(name="Deliver").exists():
+        # Get orders assigned to the current user
+        orders = Order.objects.filter(delivery_person=request.user)
+        return render(request, "BookAPI/vieworder.html", {"orders": orders})
+    else:
+        # Redirect if the user is not in the Delivery group
+        return redirect("home")  # Redirect to a relevant page if needed
+
+
+def is_manager(user):
+    return user.groups.filter(name="Manager").exists()
+
+
+@login_required
+@user_passes_test(is_manager, login_url="home")
+def assign_order_view(request):
+    if request.method == "POST":
+        form = AssignOrderForm(request.POST)
+        if form.is_valid():
+            order_id = form.cleaned_data["order_id"]
+            username = form.cleaned_data["username"]
+
+            try:
+                order = Order.objects.get(id=order_id)
+                delivery_person = User.objects.get(username=username)
+
+                # Assign the order to the delivery person
+                order.delivery_person = delivery_person
+                order.save()
+
+                return redirect("assign_order")  #
+            except Order.DoesNotExist:
+                form.add_error("order_id", "The order does not exist.")
+            except User.DoesNotExist:
+                form.add_error("username", "The delivery person does not exist.")
+
+    else:
+        form = AssignOrderForm()
+
+    return render(request, "BookAPI/assign_order.html", {"form": form})

@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+{% block title %}Manage Staff{% endblock %}
+
+{% block content %}
+<h2>Your Assigned Orders</h2>
+
+<!-- Display orders -->
+{% if orders %}
+<ul>
+    {% for order in orders %}
+    <li>
+        <h3>Order ID: {{ forloop.counter }}</h3>
+        <ul>
+            {% for item in order.items.all %}
+            <li>{{ item.item.name }} (x{{ item.quantity }})</li>
+            {% endfor %}
+        </ul>
+    </li>
+    {% endfor %}
+</ul>
+{% else %}
+<p>You have no assigned orders.</p>
+{% endif %}
+{% endblock %}
