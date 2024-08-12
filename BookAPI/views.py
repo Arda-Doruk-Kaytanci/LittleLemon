@@ -1,13 +1,14 @@
 from django.contrib.auth.models import User
 from rest_framework.authentication import TokenAuthentication
-from django.contrib.auth import logout as auth_logout 
+from django.contrib.auth import logout as auth_logout
 from rest_framework_simplejwt.exceptions import TokenError
-from .models import MenuItem, Category
+from .models import MenuItem, Category, CartItem
 from .serializers import (
     MenuSerializer,
     CategorySerializer,
     UserSerializer,
     LoginSerializer,
+    CartSerializer,
     RegisterSerializer,
 )
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -42,6 +43,16 @@ class CategoryView(generics.ListCreateAPIView):
     serializer_class = CategorySerializer
 
 
+class CartView(generics.ListAPIView):
+    queryset = CartItem.objects.all()
+    serializer_class = CartSerializer
+
+
+class CartSingleItem(generics.RetrieveAPIView):
+    queryset = CartItem.objects.all()
+    serializer_class = CartSerializer
+
+
 class UserView(generics.ListCreateAPIView):
     authentication_classes = [TokenAuthentication]
     queryset = User.objects.all()
@@ -51,6 +62,10 @@ class UserView(generics.ListCreateAPIView):
 
 @csrf_protect
 def register_view(request):
+    # Check if the user is already authenticated
+    if request.user.is_authenticated:
+        return redirect("login")  # Adjust this to your URL name
+
     if request.method == "POST":
         username = request.POST.get("username")
         password = request.POST.get("password")
@@ -66,7 +81,7 @@ def register_view(request):
             refresh_token = str(refresh)
 
             # Create response object
-            response = redirect("login/home")
+            response = redirect("login")  # Adjust this to your URL name
             response.set_cookie(
                 "access",
                 access_token,
@@ -135,6 +150,7 @@ def user_login(request):
     return render(request, "BookAPI/login.html")
 
 
+@login_required
 @api_view(["GET", "POST"])
 def manage_staff_view(request):
     token = request.COOKIES.get("access")  # Get the access token from cookies
@@ -176,15 +192,27 @@ def manage_staff_view(request):
         return render(request, "BookAPI/manage_staff.html", {"users": users})
 
     except AuthenticationFailed:
-        return redirect("login")
+        return redirect("home")  # Redirect to home page on token error
+    except Exception as e:
+        # Handle unexpected errors
+        print(f"Unexpected error: {e}")
+        return redirect("home")
 
 
 @login_required
 def home(request):
     user = request.user
-    return render(request, "BookAPI/home.html", {"username": user.username})
+    is_manager = user.groups.filter(
+        name="manager"
+    ).exists()  # Check if user is in 'manager' group
+    return render(
+        request,
+        "BookAPI/home.html",
+        {"username": user.username, "is_manager": is_manager},
+    )
 
 
+@login_required
 @csrf_protect
 def refresh_token(request):
     if request.method == "POST":
@@ -220,6 +248,7 @@ def refresh_token(request):
     return redirect("home")
 
 
+@login_required
 @csrf_protect
 def user_logout(request):
     auth_logout(request)  # Clear the session
@@ -227,3 +256,61 @@ def user_logout(request):
     response.delete_cookie("access")
     response.delete_cookie("refresh")
     return response
+
+
+@login_required
+def shop(request):
+    items = MenuItem.objects.all()
+    total_price = sum(item.price for item in items)
+
+    if request.method == "POST":
+        item_id = request.POST.get("item_id")
+        quantity = request.POST.get("quantity", 1)
+        item = MenuItem.objects.get(id=item_id)
+
+        # Create or update the CartItem for this user and item
+        cart_item, created = CartItem.objects.get_or_create(
+            user=request.user, item=item, defaults={"quantity": quantity}
+        )
+        if not created:
+            cart_item.quantity += int(quantity)
+            cart_item.save()
+
+        return redirect("shop")  # Redirect to the shop page after adding to the cart
+
+    return render(request, "BookAPI/shop.html", {"menu": items, "total": total_price})
+
+
+@login_required
+def view_cart(request):
+    if request.method == "POST":
+        item_id = request.POST.get("item_id")
+        action = request.POST.get("action")
+
+        if item_id and action:
+            try:
+                cart_item = CartItem.objects.get(id=item_id, user=request.user)
+
+                if action == "remove":
+                    cart_item.delete()  # Remove the item if requested
+                elif action == "decrease" and cart_item.quantity > 1:
+                    cart_item.quantity -= 1  # Decrease quantity
+                    cart_item.save()
+                # Optionally handle an "increase" action if needed
+
+            except CartItem.DoesNotExist:
+                pass  # Handle the case where the item does not exist or does not belong to the user
+
+        return redirect("cart")  # Redirect to the cart page after modification
+
+    # Retrieve all cart items for the logged-in user
+    cart_items = CartItem.objects.filter(user=request.user)
+
+    # Calculate the total price
+    total_price = sum(item.item.price * item.quantity for item in cart_items)
+
+    return render(
+        request,
+        "BookAPI/cart.html",
+        {"cart_items": cart_items, "total_price": total_price},
+    )

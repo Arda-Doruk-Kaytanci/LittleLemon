@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+
+{% block title %}Manage Staff{% endblock %}
+
+{% block content %}
+<h2>Manage Staff</h2>
+
+<!-- Display message if any -->
+<select>
+    {% for cart in carts %}
+    <option value="{{ cart.name }}">{{ cart.name }}</option>
+    {% endfor %}
+</select>
+{% endblock %}

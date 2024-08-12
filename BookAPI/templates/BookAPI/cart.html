@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% block title %}Your Cart{% endblock %}
+
+{% block content %}
+<h2>Your Cart</h2>
+
+{% if cart_items %}
+<ul>
+    {% for item in cart_items %}
+    <li>
+        {{ item.item.name }} - Quantity: {{ item.quantity }} - Price: ${{ item.item.price }} each
+
+        <!-- Form to decrease item quantity -->
+        <form action="{% url 'cart' %}" method="post" style="display:inline;">
+            {% csrf_token %}
+            <input type="hidden" name="item_id" value="{{ item.id }}">
+            <input type="hidden" name="action" value="decrease">
+            <button type="submit">Decrease Quantity</button>
+        </form>
+
+        <!-- Form to remove item from cart -->
+        <form action="{% url 'cart' %}" method="post" style="display:inline;">
+            {% csrf_token %}
+            <input type="hidden" name="item_id" value="{{ item.id }}">
+            <input type="hidden" name="action" value="remove">
+            <button type="submit">Remove</button>
+        </form>
+    </li>
+    {% endfor %}
+</ul>
+
+<hr>
+
+<!-- Display the total price -->
+<p>Total Price: ${{ total_price|floatformat:2 }}</p>
+
+<hr>
+
+<form method="post">
+    {% csrf_token %}
+    <button type="submit">Proceed to Checkout</button>
+</form>
+
+{% else %}
+<p>Your cart is empty.</p>
+{% endif %}
+{% endblock %}

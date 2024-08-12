@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}My Site{% endblock %}</title>
+    <style>
+        /* Add any common styles here */
+        .navbar {
+            background-color: #333;
+            color: #fff;
+            padding: 10px;
+        }
+        .navbar a {
+            color: #fff;
+            margin: 0 15px;
+            text-decoration: none;
+        }
+        .navbar a:hover {
+            text-decoration: underline;
+        }
+         body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        .navbar {
+            background-color: #333;
+            padding: 1rem;
+        }
+
+        .navbar a {
+            color: white;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+        }
+
+        .navbar a:hover {
+            background-color: #575757;
+        }
+
+        .container {
+            padding: 2rem;
+        }
+
+        button {
+            padding: 0.5rem 1rem;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav class="navbar">
+            <a href="{% url 'home' %}">Home</a>
+            <a href="{% url 'manage_staff' %}">Manage Staff</a>
+            <a href="{% url 'shop' %}">Shop</a>
+            <a href="{% url 'cart' %}">Cart</a>
+            <!-- Conditionally display section based on boolean -->
+            {% if show_special_section %}
+                <a href="{% url 'special_section' %}">Special Section</a>
+            {% endif %}
+        </nav>
+    </header>
+
+    <main>
+        {% block content %}
+        <!-- Page-specific content will go here -->
+        {% endblock %}
+    </main>
+
+    <footer>
+        <!-- Common footer content -->
+        <p>&copy; 2024 My Site</p>
+    </footer>
+</body>
+</html>

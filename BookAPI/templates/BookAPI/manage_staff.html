@@ -1,18 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends 'base.html' %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manage Staff</title>
-    <style>
-        .search-box {
-            margin-bottom: 10px;
-        }
-    </style>
-</head>
+{% block title %}Manage Staff{% endblock %}
 
-<body>
+{% block content %}
     <h2>Manage Staff</h2>
 
     <!-- Display message if any -->
@@ -37,6 +27,7 @@
 
         <button type="submit">Assign as Staff</button>
     </form>
+
     <script>
         // Function to filter the options based on the search query
         document.getElementById('search').addEventListener('input', function () {
@@ -53,8 +44,5 @@
                 }
             }
         });
-        // script.js
     </script>
-</body>
-
-</html>
+{% endblock %}
