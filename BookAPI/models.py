@@ -30,10 +30,9 @@ class CartItem(models.Model):
 
 
 class Order(models.Model):
-    delivery_person = models.ForeignKey(
-        User, on_delete=models.PROTECT, null=True, blank=True, default=None
-    )
-    items = models.ManyToManyField(CartItem)  # Relationship with CartItem
+    delivery_person = models.ForeignKey(User, on_delete=models.PROTECT, null=True, blank=True, default=None, related_name="delivery")
+    sent_by = models.ForeignKey(User, on_delete=models.PROTECT, default=1)
+    items = models.ManyToManyField(CartItem) 
 
     def total_price(self):
         return sum(item.item.price * item.quantity for item in self.items.all())

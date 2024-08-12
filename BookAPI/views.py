@@ -307,7 +307,7 @@ def view_cart(request):
                 pass
 
         elif action == "finish_order":
-            order = Order.objects.create()
+            order = Order.objects.create(sent_by = request.user)
             cart_items = CartItem.objects.filter(user=request.user)
 
             for item in cart_items:
