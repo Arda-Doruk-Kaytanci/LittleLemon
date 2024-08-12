@@ -310,9 +310,8 @@ def view_cart(request):
             order = Order.objects.create(sent_by=request.user)
             cart_items = CartItem.objects.filter(user=request.user)
 
-            for item in cart_items:
-                order.items.add(item)
-            cart_items.delete
+            order.items.set(cart_items)
+            order.save()
             return redirect("cart")
 
         return redirect("cart")
