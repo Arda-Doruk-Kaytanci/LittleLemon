@@ -1,5 +1,7 @@
 from django.contrib.auth.models import User
 from rest_framework.authentication import TokenAuthentication
+from django.contrib.auth import logout as auth_logout
+from rest_framework_simplejwt.exceptions import TokenError
 from .models import MenuItem, Category
 from .serializers import (
     MenuSerializer,
@@ -63,13 +65,26 @@ def register_view(request):
             access_token = str(refresh.access_token)
             refresh_token = str(refresh)
 
-            # Return the tokens and redirect or render as needed
-            response = render(
-                request, "BookAPI/register.html", {"message": "Registration successful"}
+            # Create response object
+            response = redirect("login/home")
+            response.set_cookie(
+                "access",
+                access_token,
+                max_age=3600,
+                httponly=True,
+                secure=True,
+                samesite="Lax",
             )
-            response.set_cookie("access", access_token, httponly=True, secure=True)
-            response.set_cookie("refresh", refresh_token, httponly=True, secure=True)
-            return redirect("login/home")
+            response.set_cookie(
+                "refresh",
+                refresh_token,
+                max_age=86400 * 7,
+                httponly=True,
+                secure=True,
+                samesite="Lax",
+            )
+
+            return response
         else:
             return render(
                 request, "BookAPI/register.html", {"errors": serializer.errors}
@@ -92,12 +107,25 @@ def user_login(request):
             access_token = str(refresh.access_token)
             refresh_token = str(refresh)
 
-            # Set new tokens in cookies
-            response = redirect(
-                "/api/login/home"
-            )  # Redirect to a protected page or home
-            response.set_cookie("access", access_token, httponly=True, secure=True)
-            response.set_cookie("refresh", refresh_token, httponly=True, secure=True)
+            # Create response object
+            response = redirect("home")
+            response.set_cookie(
+                "access",
+                access_token,
+                max_age=3600,
+                httponly=True,
+                secure=True,
+                samesite="Lax",
+            )
+            response.set_cookie(
+                "refresh",
+                refresh_token,
+                max_age=86400 * 7,
+                httponly=True,
+                secure=True,
+                samesite="Lax",
+            )
+
             return response
         else:
             return render(
@@ -154,4 +182,48 @@ def manage_staff_view(request):
 @login_required
 def home(request):
     user = request.user
-    return render(request, "home.html", {"username": user.username})
+    return render(request, "BookAPI/home.html", {"username": user.username})
+
+
+@csrf_protect
+def refresh_token(request):
+    if request.method == "POST":
+        refresh_token = request.COOKIES.get("refresh")
+        if not refresh_token:
+            return redirect("login")  # Redirect if no refresh token is found
+
+        try:
+            refresh = RefreshToken(refresh_token)
+            new_access_token = str(refresh.access_token)
+            new_refresh_token = str(refresh)
+            response = redirect("home")
+            response.set_cookie(
+                "access",
+                new_access_token,
+                max_age=3600,
+                httponly=True,
+                secure=True,
+                samesite="Lax",
+            )
+            response.set_cookie(
+                "refresh",
+                new_refresh_token,
+                max_age=86400 * 7,
+                httponly=True,
+                secure=True,
+                samesite="Lax",
+            )
+            return response
+        except TokenError:
+            return redirect("login")  # Redirect if token is invalid
+
+    return redirect("home")
+
+
+@csrf_protect
+def user_logout(request):
+    auth_logout(request)  # Clear the session
+    response = redirect("login")
+    response.delete_cookie("access")
+    response.delete_cookie("refresh")
+    return response
