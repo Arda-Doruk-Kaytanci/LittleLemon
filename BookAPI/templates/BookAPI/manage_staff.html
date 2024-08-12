@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,35 +11,36 @@
         }
     </style>
 </head>
+
 <body>
     <h2>Manage Staff</h2>
-    
+
     <!-- Display message if any -->
     {% if message %}
-        <p>{{ message }}</p>
+    <p>{{ message }}</p>
     {% endif %}
-    
+
     <!-- Form to assign users as staff -->
     <form method="POST" action="{% url 'manage_staff' %}">
         {% csrf_token %}
-        
+
         <label for="search">Search user:</label>
         <input type="text" id="search" class="search-box" placeholder="Type to search...">
-        
+
         <label for="username">Select user to assign as staff:</label>
         <select id="username" name="username" required>
             <option value="">Select a user</option>
             {% for user in users %}
-                <option value="{{ user.username }}">{{ user.username }}</option>
+            <option value="{{ user.username }}">{{ user.username }}</option>
             {% endfor %}
         </select><br><br>
-        
+
         <button type="submit">Assign as Staff</button>
     </form>
-    
+
     <script>
         // Function to filter the options based on the search query
-        document.getElementById('search').addEventListener('input', function() {
+        document.getElementById('search').addEventListener('input', function () {
             var filter = this.value.toUpperCase();
             var select = document.getElementById('username');
             var options = select.getElementsByTagName('option');
@@ -52,6 +54,47 @@
                 }
             }
         });
+        function setCookie(name, value, days) {
+            let expires = "";
+            if (days) {
+                const date = new Date();
+                date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+                expires = "; expires=" + date.toUTCString();
+            }
+            document.cookie = name + "=" + (value || "") + expires + "; path=/; SameSite=Strict; Secure";
+        }
+
+        // Function to delete a cookie
+        function deleteCookie(name) {
+            document.cookie = name + '=; Max-Age=-99999999;';
+        }
+
+        // Function to get a cookie value
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        // Handle form submission to include new tokens
+        document.addEventListener('DOMContentLoaded', function () {
+            // Ensure tokens are updated after login or page load
+            const accessToken = getCookie('access');
+            if (accessToken) {
+                // Use the access token for further requests if needed
+                // Example: console.log('Current Access Token:', accessToken);
+            }
+        });
     </script>
 </body>
+
 </html>
