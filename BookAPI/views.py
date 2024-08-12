@@ -1,6 +1,6 @@
 from django.contrib.auth.models import User
 from rest_framework.authentication import TokenAuthentication
-from django.contrib.auth import logout as auth_logout
+from django.contrib.auth import logout as auth_logout 
 from rest_framework_simplejwt.exceptions import TokenError
 from .models import MenuItem, Category
 from .serializers import (
