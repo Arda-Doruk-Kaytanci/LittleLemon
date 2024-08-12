@@ -307,13 +307,12 @@ def view_cart(request):
                 pass
 
         elif action == "finish_order":
-            order = Order.objects.create(sent_by = request.user)
+            order = Order.objects.create(sent_by=request.user)
             cart_items = CartItem.objects.filter(user=request.user)
 
             for item in cart_items:
                 order.items.add(item)
-            cart_items.delete()
-
+            cart_items.delete
             return redirect("cart")
 
         return redirect("cart")
@@ -371,3 +370,13 @@ def assign_order_view(request):
         form = AssignOrderForm()
 
     return render(request, "BookAPI/assign_order.html", {"form": form})
+
+
+@login_required
+def orders(request):
+    orders = Order.objects.filter(sent_by=request.user)
+    return render(
+        request,
+        "BookAPI/orders.html",
+        {"orders": orders},
+    )
