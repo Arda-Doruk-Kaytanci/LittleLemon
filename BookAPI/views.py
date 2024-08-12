@@ -3,6 +3,7 @@ from rest_framework.authentication import TokenAuthentication
 from .models import MenuItem, Category
 from .serializers import MenuSerializer, CategorySerializer, UserSerializer, LoginSerializer, RegisterSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
+from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_protect
 from django.contrib.auth import authenticate, login
 from rest_framework.decorators import api_view
@@ -41,16 +42,16 @@ def register_view(request):
         })
         if serializer.is_valid():
             user = serializer.save()
-            # Generate token
+            # Generate JWT tokens
             refresh = RefreshToken.for_user(user)
             access_token = str(refresh.access_token)
             refresh_token = str(refresh)
 
             # Return the tokens and redirect or render as needed
             response = render(request, 'BookAPI/register.html', {'message': 'Registration successful'})
-            response.set_cookie('access', access_token, httponly=True)
-            response.set_cookie('refresh', refresh_token, httponly=True)
-            return response
+            response.set_cookie('access', access_token, httponly=True, secure=True)
+            response.set_cookie('refresh', refresh_token, httponly=True, secure=True)
+            return redirect("login/home")
         else:
             return render(request, 'BookAPI/register.html', {'errors': serializer.errors})
 
@@ -64,13 +65,13 @@ def user_login(request):
 
         if user is not None:
             login(request, user)
-            # Generate new tokens
+            # Generate new JWT tokens
             refresh = RefreshToken.for_user(user)
             access_token = str(refresh.access_token)
             refresh_token = str(refresh)
 
             # Set new tokens in cookies
-            response = redirect('/api/menu')  # Redirect to a protected page or home
+            response = redirect('/api/login/home')  # Redirect to a protected page or home
             response.set_cookie('access', access_token, httponly=True, secure=True)
             response.set_cookie('refresh', refresh_token, httponly=True, secure=True)
             return response
@@ -114,3 +115,7 @@ def manage_staff_view(request):
 
     except AuthenticationFailed:
         return redirect('login')
+@login_required
+def home(request):
+    user = request.user
+    return render(request, 'home.html', {'username': user.username})
