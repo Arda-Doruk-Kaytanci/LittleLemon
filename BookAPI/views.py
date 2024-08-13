@@ -325,21 +325,44 @@ def view_cart(request):
         elif action == "finish_order":
             order = Order.objects.create(sent_by=request.user)
             cart_items = CartItem.objects.filter(user=request.user)
-
             order.items.set(cart_items)
             order.save()
             return redirect("cart")
 
         return redirect("cart")
 
-    cart_items = CartItem.objects.filter(user=request.user)
+    # Sorting and Pagination
+    sort_by = request.GET.get("sort_by", "name")  # Default sorting by 'name'
+    sort_order = request.GET.get("order", "asc")  # Default to ascending order
 
-    total_price = sum(item.item.price * item.quantity for item in cart_items)
+    # Define sorting fields
+    sort_fields = {
+        "name": "item__name",
+        "price": "item__price",
+        "quantity": "quantity",
+    }
+
+    # Apply sorting and pagination
+    sort_field = sort_fields.get(sort_by, "item__name")
+    ordering = f"{'-' if sort_order == 'desc' else ''}{sort_field}"
+    cart_items = CartItem.objects.filter(user=request.user).order_by(ordering)
+
+    # Pagination
+    paginator = Paginator(cart_items, 10)  # Show 10 items per page
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    total_price = sum(item.item.price * item.quantity for item in page_obj)
 
     return render(
         request,
         "BookAPI/cart.html",
-        {"cart_items": cart_items, "total_price": total_price},
+        {
+            "cart_items": page_obj,
+            "total_price": total_price,
+            "sort_by": sort_by,
+            "order": sort_order,
+        },
     )
 
 

@@ -5,10 +5,26 @@
 {% block content %}
 <h2>Your Cart</h2>
 
+<form method="get" action="{% url 'cart' %}">
+    <label for="sort_by">Sort by:</label>
+    <select name="sort_by" id="sort_by">
+        <option value="name" {% if sort_by == "name" %}selected{% endif %}>Name</option>
+        <option value="price" {% if sort_by == "price" %}selected{% endif %}>Price</option>
+        <option value="quantity" {% if sort_by == "quantity" %}selected{% endif %}>Quantity</option>
+    </select>
+    <label for="order">Order:</label>
+    <select name="order" id="order">
+        <option value="asc" {% if order == "asc" %}selected{% endif %}>Ascending</option>
+        <option value="desc" {% if order == "desc" %}selected{% endif %}>Descending</option>
+    </select>
+    <button type="submit">Apply</button>
+</form>
+
 {% if cart_items %}
 <ul>
     {% for item in cart_items %}
-    <li>{{ item.item.name }} - {{ item.quantity }} x {{ item.item.price }}
+    <li>
+        {{ item.item.name }} - {{ item.quantity }} x ${{ item.item.price }}
         <form method="post" style="display:inline;">
             {% csrf_token %}
             <input type="hidden" name="item_id" value="{{ item.id }}">
@@ -18,12 +34,39 @@
     </li>
     {% endfor %}
 </ul>
+
 <p>Total Price: ${{ total_price }}</p>
+
 <form method="post">
     {% csrf_token %}
     <input type="hidden" name="action" value="finish_order">
     <button type="submit">Finish Order</button>
 </form>
+
+<!-- Pagination controls -->
+<div class="pagination">
+    <span class="step-links">
+        {% if cart_items.has_previous %}
+        <a href="?{% if sort_by %}sort_by={{ sort_by }}&{% endif %}page=1{% if order %}&order={{ order }}{% endif %}">&laquo;
+            first</a>
+        <a
+            href="?{% if sort_by %}sort_by={{ sort_by }}&{% endif %}page={{ cart_items.previous_page_number }}{% if order %}&order={{ order }}{% endif %}">previous</a>
+        {% endif %}
+
+        <span class="current">
+            Page {{ cart_items.number }} of {{ cart_items.paginator.num_pages }}.
+        </span>
+
+        {% if cart_items.has_next %}
+        <a
+            href="?{% if sort_by %}sort_by={{ sort_by }}&{% endif %}page={{ cart_items.next_page_number }}{% if order %}&order={{ order }}{% endif %}">next</a>
+        <a
+            href="?{% if sort_by %}sort_by={{ sort_by }}&{% endif %}page={{ cart_items.paginator.num_pages }}{% if order %}&order={{ order }}{% endif %}">last
+            &raquo;</a>
+        {% endif %}
+    </span>
+</div>
+
 {% else %}
 <p>Your cart is empty.</p>
 {% endif %}
