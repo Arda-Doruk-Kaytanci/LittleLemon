@@ -406,13 +406,31 @@ def orders(request):
 
         return redirect("view_order")
 
-    orders_list = Order.objects.filter(sent_by=request.user)
+    sort_by = request.GET.get("sort_by", "id")
+    order = request.GET.get("order", "asc")
 
-    paginator = Paginator(orders_list, 10)
+    sort_fields = {
+        "id": "id",
+        "price": "price",
+        "delivered": "delivered",
+    }
+
+    sort_field = sort_fields.get(sort_by, "id")
+    sort_order = "" if order == "asc" else "-"
+
+    orders = Order.objects.filter(sent_by=request.user).order_by(
+        f"{sort_order}{sort_field}"
+    )
+
+    paginator = Paginator(orders, 10)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
 
-    return render(request, "BookAPI/orders.html", {"orders": page_obj})
+    return render(
+        request,
+        "BookAPI/orders.html",
+        {"orders": page_obj, "sort_by": sort_by, "order": order},
+    )
 
 
 @login_required

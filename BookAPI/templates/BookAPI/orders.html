@@ -3,6 +3,21 @@
 {% block content %}
 <h2>Your Past Orders</h2>
 
+<form method="get" action="{% url 'view_order' %}">
+    <label for="sort_by">Sort by:</label>
+    <select name="sort_by" id="sort_by">
+        <option value="id" {% if sort_by == "id" %}selected{% endif %}>Order ID</option>
+        <option value="price" {% if sort_by == "price" %}selected{% endif %}>Price</option>
+        <option value="delivered" {% if sort_by == "delivered" %}selected{% endif %}>Delivered</option>
+    </select>
+    <label for="order">Order:</label>
+    <select name="order" id="order">
+        <option value="asc" {% if order == "asc" %}selected{% endif %}>Ascending</option>
+        <option value="desc" {% if order == "desc" %}selected{% endif %}>Descending</option>
+    </select>
+    <button type="submit">Apply</button>
+</form>
+
 {% if orders %}
 <ul>
     {% for order in orders %}
@@ -23,11 +38,14 @@
     {% endfor %}
 </ul>
 
+<!-- Pagination controls -->
 <div class="pagination">
     <span class="step-links">
         {% if orders.has_previous %}
-        <a href="?page=1">First</a>
-        <a href="?page={{ orders.previous_page_number }}">Previous</a>
+        <a href="?{% if sort_by %}sort_by={{ sort_by }}&{% endif %}page=1{% if order %}&order={{ order }}{% endif %}">&laquo;
+            first</a>
+        <a
+            href="?{% if sort_by %}sort_by={{ sort_by }}&{% endif %}page={{ orders.previous_page_number }}{% if order %}&order={{ order }}{% endif %}">previous</a>
         {% endif %}
 
         <span class="current">
@@ -35,8 +53,11 @@
         </span>
 
         {% if orders.has_next %}
-        <a href="?page={{ orders.next_page_number }}">Next</a>
-        <a href="?page={{ orders.paginator.num_pages }}">Last</a>
+        <a
+            href="?{% if sort_by %}sort_by={{ sort_by }}&{% endif %}page={{ orders.next_page_number }}{% if order %}&order={{ order }}{% endif %}">next</a>
+        <a
+            href="?{% if sort_by %}sort_by={{ sort_by }}&{% endif %}page={{ orders.paginator.num_pages }}{% if order %}&order={{ order }}{% endif %}">last
+            &raquo;</a>
         {% endif %}
     </span>
 </div>
