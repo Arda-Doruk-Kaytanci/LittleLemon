@@ -378,8 +378,6 @@ def assign_order_view(request):
             try:
                 order = Order.objects.get(id=order_id)
                 delivery_person = User.objects.get(username=username)
-
-                # Assign the order to the delivery person
                 order.delivery_person = delivery_person
                 order.save()
 
@@ -406,15 +404,11 @@ def orders(request):
         except Order.DoesNotExist:
             pass
 
-        return redirect(
-            "view_order"
-        )  # Ensure the URL name matches your URL configuration
+        return redirect("view_order")
 
-    # Fetch orders for the logged-in user
     orders_list = Order.objects.filter(sent_by=request.user)
 
-    # Set up pagination
-    paginator = Paginator(orders_list, 10)  # Show 10 orders per page
+    paginator = Paginator(orders_list, 10)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
 
