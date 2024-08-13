@@ -1,4 +1,5 @@
 from django.contrib.auth.models import User, Group
+from django.core.paginator import Paginator
 from rest_framework.authentication import TokenAuthentication
 from django.contrib.auth import logout as auth_logout
 from rest_framework_simplejwt.exceptions import TokenError
@@ -60,7 +61,7 @@ class UserView(generics.ListCreateAPIView):
 @csrf_protect
 def register_view(request):
     if request.user.is_authenticated:
-        return redirect("home")  
+        return redirect("home")
 
     if request.method == "POST":
         username = request.POST.get("username")
@@ -405,10 +406,19 @@ def orders(request):
         except Order.DoesNotExist:
             pass
 
-        return redirect("orders") 
+        return redirect(
+            "view_order"
+        )  # Ensure the URL name matches your URL configuration
 
-    orders = Order.objects.filter(sent_by=request.user)
-    return render(request, "BookAPI/orders.html", {"orders": orders})
+    # Fetch orders for the logged-in user
+    orders_list = Order.objects.filter(sent_by=request.user)
+
+    # Set up pagination
+    paginator = Paginator(orders_list, 10)  # Show 10 orders per page
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, "BookAPI/orders.html", {"orders": page_obj})
 
 
 @login_required
