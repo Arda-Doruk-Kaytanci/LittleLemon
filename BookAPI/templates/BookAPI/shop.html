@@ -1,26 +1,46 @@
 {% extends 'base.html' %}
 
-{% block title %}Shop{% endblock %}
-
 {% block content %}
-    <h1>Menu</h1>
-    {% if menu %}
-        <ul>
-            {% for item in menu %}
-                <li>
-                    {{ item.name }}: ${{ item.price }}
-                    <form method="post" action="{% url 'shop' %}" style="display:inline;">
-                        {% csrf_token %}
-                        <input type="hidden" name="item_id" value="{{ item.id }}">
-                        <input type="number" name="quantity" value="1" min="1">
-                        <button type="submit">Add to Cart</button>
-                    </form>
-                </li>
-            {% endfor %}
-        </ul>
-        <hr>
-        <p><strong>Total: ${{ total }}</strong></p>
-    {% else %}
-        <p>No items available in the menu.</p>
-    {% endif %}
+<h2>Shop</h2>
+
+<form method="get">
+    <input type="text" name="search" placeholder="Search by name" value="{{ request.GET.search }}">
+    <button type="submit">Search</button>
+
+    <select name="category" onchange="this.form.submit()">
+        <option value="">All Categories</option>
+        {% for category in categories %}
+        <option value="{{ category.id }}" {% if category.id|stringformat:"s" == selected_category %}selected{% endif %}>
+            {{ category.title }}
+        </option>
+        {% endfor %}
+    </select>
+
+    <select name="sort_by" onchange="this.form.submit()">
+        <option value="">Sort By</option>
+        <option value="category" {% if request.GET.sort_by == 'category' %}selected{% endif %}>Category</option>
+        <option value="price" {% if request.GET.sort_by == 'price' %}selected{% endif %}>Price</option>
+    </select>
+
+    <select name="order" onchange="this.form.submit()">
+        <option value="asc" {% if request.GET.order == 'asc' %}selected{% endif %}>Ascending</option>
+        <option value="desc" {% if request.GET.order == 'desc' %}selected{% endif %}>Descending</option>
+    </select>
+</form>
+
+<ul>
+    {% for item in menu %}
+    <li>
+        <strong>{{ item.name }}</strong> - ${{ item.price }}
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="item_id" value="{{ item.id }}">
+            <input type="number" name="quantity" value="1" min="1">
+            <button type="submit">Add to Cart</button>
+        </form>
+    </li>
+    {% endfor %}
+</ul>
+
+<p>Total Price: ${{ total }}</p>
 {% endblock %}

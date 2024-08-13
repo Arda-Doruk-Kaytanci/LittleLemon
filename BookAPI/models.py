@@ -32,7 +32,8 @@ class CartItem(models.Model):
 class Order(models.Model):
     delivery_person = models.ForeignKey(User, on_delete=models.PROTECT, null=True, blank=True, default=None, related_name="delivery")
     sent_by = models.ForeignKey(User, on_delete=models.PROTECT, default=1)
-    items = models.ManyToManyField(CartItem)
+    items = models.ManyToManyField('CartItem')
+    delivered = models.BooleanField(default=False)
 
     def total_price(self):
         return sum(item.item.price * item.quantity for item in self.items.all())
@@ -41,3 +42,8 @@ class Order(models.Model):
         if self.delivery_person:
             return f"Order {self.id} by {self.delivery_person.username}"
         return f"Order {self.id} - Not Assigned"
+class ItemOfTheDay(models.Model):
+    item = models.ForeignKey(MenuItem, on_delete=models.SET_NULL, null=True, blank=True)
+
+    def __str__(self):
+        return self.item.name if self.item else "No item set"

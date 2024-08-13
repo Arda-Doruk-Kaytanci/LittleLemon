@@ -1,14 +1,13 @@
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, Group
 from rest_framework.authentication import TokenAuthentication
 from django.contrib.auth import logout as auth_logout
 from rest_framework_simplejwt.exceptions import TokenError
 from .forms import AssignOrderForm
-from .models import MenuItem, Category, CartItem, Order
+from .models import MenuItem, Category, CartItem, Order, ItemOfTheDay
 from .serializers import (
     MenuSerializer,
     CategorySerializer,
     UserSerializer,
-    LoginSerializer,
     CartSerializer,
     RegisterSerializer,
 )
@@ -16,10 +15,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.views.decorators.csrf import csrf_protect
 from django.contrib.auth import authenticate, login
-from rest_framework.decorators import api_view
-from rest_framework_simplejwt.tokens import AccessToken
 from rest_framework import generics, permissions
-from rest_framework.exceptions import AuthenticationFailed
 from django.shortcuts import redirect, render
 
 
@@ -63,9 +59,8 @@ class UserView(generics.ListCreateAPIView):
 
 @csrf_protect
 def register_view(request):
-    # Check if the user is already authenticated
     if request.user.is_authenticated:
-        return redirect("login")  # Adjust this to your URL name
+        return redirect("home")  
 
     if request.method == "POST":
         username = request.POST.get("username")
@@ -76,13 +71,11 @@ def register_view(request):
         )
         if serializer.is_valid():
             user = serializer.save()
-            # Generate JWT tokens
             refresh = RefreshToken.for_user(user)
             access_token = str(refresh.access_token)
             refresh_token = str(refresh)
 
-            # Create response object
-            response = redirect("login")  # Adjust this to your URL name
+            response = redirect("login")
             response.set_cookie(
                 "access",
                 access_token,
@@ -118,12 +111,10 @@ def user_login(request):
 
         if user is not None:
             login(request, user)
-            # Generate new JWT tokens
             refresh = RefreshToken.for_user(user)
             access_token = str(refresh.access_token)
             refresh_token = str(refresh)
 
-            # Create response object
             response = redirect("home")
             response.set_cookie(
                 "access",
@@ -152,64 +143,57 @@ def user_login(request):
 
 
 @login_required
-@api_view(["GET", "POST"])
 def manage_staff_view(request):
-    token = request.COOKIES.get("access")  # Get the access token from cookies
+    if request.method == "POST":
+        username = request.POST.get("username")
+        role = request.POST.get("role")
 
-    if not token:
-        return redirect("login")  # Redirect if no token is found
+        try:
+            user = User.objects.get(username=username)
+            if role == "manager":
+                user.groups.add(Group.objects.get(name="manager"))
+            elif role == "staff":
+                user.groups.add(Group.objects.get(name="staff"))
+            elif role == "delivery":
+                user.groups.add(Group.objects.get(name="delivery"))
+        except User.DoesNotExist:
+            pass
 
-    try:
-        # Verify the token
-        access_token = AccessToken(token)
-        user_id = access_token["user_id"]
-        user = User.objects.get(id=user_id)
+        return redirect("manage_staff")
 
-        # Check if user is in the "Manager" group
-        if not user.groups.filter(name="Manager").exists():
-            return redirect("login")  # Redirect if user is not a manager
-
-        if request.method == "POST":
-            username = request.POST.get("username")
-            if username:
-                try:
-                    target_user = User.objects.get(username=username)
-                    target_user.is_staff = True
-                    target_user.save()
-                    message = f"{username} has been assigned as staff."
-                except User.DoesNotExist:
-                    message = "User does not exist."
-
-                return render(
-                    request,
-                    "BookAPI/manage_staff.html",
-                    {"message": message, "users": User.objects.all()},
-                )
-
-        # Fetch all users to be shown in the select list
-        users = User.objects.exclude(
-            username=user.username
-        )  # Exclude current user if needed
-        return render(request, "BookAPI/manage_staff.html", {"users": users})
-
-    except AuthenticationFailed:
-        return redirect("home")  # Redirect to home page on token error
-    except Exception as e:
-        # Handle unexpected errors
-        print(f"Unexpected error: {e}")
-        return redirect("home")
+    users = User.objects.all()
+    is_superuser = request.user.is_superuser
+    is_manager = request.user.groups.filter(name="manager").exists()
+    return render(
+        request,
+        "BookAPI/manage_staff.html",
+        {"users": users, "is_superuser": is_superuser, "is_manager": is_manager},
+    )
 
 
 @login_required
 def home(request):
     user = request.user
-    is_manager = user.groups.filter(
-        name="manager"
-    ).exists()  # Check if user is in 'manager' group
+    is_manager = user.groups.filter(name="manager").exists()
+
+    item_of_the_day = ItemOfTheDay.objects.first()
+
+    if request.method == "POST":
+        if "update_item_of_the_day" in request.POST:
+            item_id = request.POST.get("item_id")
+            if item_id:
+                item = MenuItem.objects.get(id=item_id)
+                ItemOfTheDay.objects.update_or_create(defaults={"item": item})
+
     return render(
         request,
         "BookAPI/home.html",
-        {"username": user.username, "is_manager": is_manager},
+        {
+            "username": user.username,
+            "is_manager": is_manager,
+            "item_of_the_day": item_of_the_day.item if item_of_the_day else None,
+            "menu_items": MenuItem.objects.all(),
+        },
     )
 
 
@@ -219,12 +203,13 @@ def refresh_token(request):
     if request.method == "POST":
         refresh_token = request.COOKIES.get("refresh")
         if not refresh_token:
-            return redirect("login")  # Redirect if no refresh token is found
+            return redirect("login")
 
         try:
             refresh = RefreshToken(refresh_token)
             new_access_token = str(refresh.access_token)
             new_refresh_token = str(refresh)
+
             response = redirect("home")
             response.set_cookie(
                 "access",
@@ -242,9 +227,13 @@ def refresh_token(request):
                 secure=True,
                 samesite="Lax",
             )
+
+            if "is_admin" in refresh.access_token and refresh.access_token["is_admin"]:
+                pass
+
             return response
         except TokenError:
-            return redirect("login")  # Redirect if token is invalid
+            return redirect("login")
 
     return redirect("home")
 
@@ -252,7 +241,7 @@ def refresh_token(request):
 @login_required
 @csrf_protect
 def user_logout(request):
-    auth_logout(request)  # Clear the session
+    auth_logout(request)
     response = redirect("login")
     response.delete_cookie("access")
     response.delete_cookie("refresh")
@@ -262,14 +251,31 @@ def user_logout(request):
 @login_required
 def shop(request):
     items = MenuItem.objects.all()
+    categories = Category.objects.all()
+
+    search_query = request.GET.get("search", "")
+    sort_by = request.GET.get("sort_by", "")
+    order = request.GET.get("order", "asc")
+    category_id = request.GET.get("category", "")
+
+    if search_query:
+        items = items.filter(name__icontains=search_query)
+
+    if category_id:
+        items = items.filter(category_id=category_id)
+
+    sort_prefix = "-" if order == "desc" else ""
+    if sort_by == "category":
+        items = items.order_by(f"{sort_prefix}category__title")
+    elif sort_by == "price":
+        items = items.order_by(f"{sort_prefix}price")
+
     total_price = sum(item.price for item in items)
 
     if request.method == "POST":
         item_id = request.POST.get("item_id")
         quantity = request.POST.get("quantity", 1)
         item = MenuItem.objects.get(id=item_id)
-
-        # Create or update the CartItem for this user and item
         cart_item, created = CartItem.objects.get_or_create(
             user=request.user, item=item, defaults={"quantity": quantity}
         )
@@ -277,9 +283,18 @@ def shop(request):
             cart_item.quantity += int(quantity)
             cart_item.save()
 
-        return redirect("shop")  # Redirect to the shop page after adding to the cart
+        return redirect("shop")
 
-    return render(request, "BookAPI/shop.html", {"menu": items, "total": total_price})
+    return render(
+        request,
+        "BookAPI/shop.html",
+        {
+            "menu": items,
+            "total": total_price,
+            "categories": categories,
+            "selected_category": category_id,
+        },
+    )
 
 
 @login_required
@@ -330,12 +345,20 @@ def view_cart(request):
 @login_required
 def view_orders(request):
     if request.user.groups.filter(name="Deliver").exists():
-        # Get orders assigned to the current user
+        if request.method == "POST":
+            order_id = request.POST.get("order_id")
+            try:
+                order = Order.objects.get(id=order_id, delivery_person=request.user)
+                order.delivered = True
+                order.save()
+            except Order.DoesNotExist:
+                pass
+            return redirect("view_orders")
+
         orders = Order.objects.filter(delivery_person=request.user)
         return render(request, "BookAPI/vieworder.html", {"orders": orders})
     else:
-        # Redirect if the user is not in the Delivery group
-        return redirect("home")  # Redirect to a relevant page if needed
+        return redirect("home")
 
 
 def is_manager(user):
@@ -373,9 +396,91 @@ def assign_order_view(request):
 
 @login_required
 def orders(request):
+    if request.method == "POST":
+        order_id = request.POST.get("order_id")
+        try:
+            order = Order.objects.get(id=order_id, sent_by=request.user)
+            order.delivered = True
+            order.save()
+        except Order.DoesNotExist:
+            pass
+
+        return redirect("orders") 
+
     orders = Order.objects.filter(sent_by=request.user)
-    return render(
-        request,
-        "BookAPI/orders.html",
-        {"orders": orders},
-    )
+    return render(request, "BookAPI/orders.html", {"orders": orders})
+
+
+@login_required
+def mark_order_delivered(request, order_id):
+    if request.user.groups.filter(name="Deliver").exists():
+        try:
+            order = Order.objects.get(id=order_id, delivery_person=request.user)
+            order.delivered = True
+            order.save()
+        except Order.DoesNotExist:
+            pass
+    return redirect("view_order")
+
+
+@login_required
+def generate_admin_token(request):
+    if request.user.is_superuser:
+        refresh = RefreshToken.for_user(request.user)
+        access_token = str(refresh.access_token)
+        refresh_token = str(refresh)
+        response = redirect("home")
+        response.set_cookie(
+            "admin_access",
+            access_token,
+            max_age=3600,
+            httponly=True,
+            secure=True,
+            samesite="Lax",
+        )
+        response.set_cookie(
+            "admin_refresh",
+            refresh_token,
+            max_age=86400 * 7,
+            httponly=True,
+            secure=True,
+            samesite="Lax",
+        )
+        return response
+    else:
+        return redirect("home")
+
+
+@login_required
+def refresh_admin_token(request):
+    if request.user.is_superuser:
+        refresh_token = request.COOKIES.get("admin_refresh")
+        if not refresh_token:
+            return redirect("login")
+
+        try:
+            refresh = RefreshToken(refresh_token)
+            new_access_token = str(refresh.access_token)
+            new_refresh_token = str(refresh)
+            response = redirect("home")
+            response.set_cookie(
+                "admin_access",
+                new_access_token,
+                max_age=3600,
+                httponly=True,
+                secure=True,
+                samesite="Lax",
+            )
+            response.set_cookie(
+                "admin_refresh",
+                new_refresh_token,
+                max_age=86400 * 7,
+                httponly=True,
+                secure=True,
+                samesite="Lax",
+            )
+            return response
+        except TokenError:
+            return redirect("login")
+    else:
+        return redirect("home")

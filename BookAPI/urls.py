@@ -19,6 +19,13 @@ urlpatterns = [
     path("login/home/shop", views.shop, name="shop"),
     path("login/home/shop/cart", views.view_cart, name="cart"),
     path("login/home/show_order", views.view_orders, name="showorder"),
-    path('login/home/assign_order', views.assign_order_view, name='assign_order'),
-    path('login/home/orders', views.orders, name='view_order'),
+    path("login/home/assign_order", views.assign_order_view, name="assign_order"),
+    path("login/home/orders", views.orders, name="view_order"),
+    path(
+        "mark-order-delivered/<int:order_id>/",
+        views.mark_order_delivered,
+        name="mark_order_delivered",
+    ),
+    path("generate_admin_token/", views.generate_admin_token, name="generate_admin_token"),
+    path("refresh_admin_token/", views.refresh_admin_token, name="refresh_admin_token"),
 ]

@@ -9,13 +9,10 @@
 
 <body>
     <h2>Register</h2>
-
-    <!-- Display messages if any -->
     {% if message %}
     <p>{{ message }}</p>
     {% endif %}
 
-    <!-- Display errors if any -->
     {% if errors %}
     <ul>
         {% for field, error_list in errors.items %}
@@ -29,11 +26,9 @@
     <form method="POST" action="{% url 'register' %}">
         {% csrf_token %}
 
-        <!-- Username field -->
         <label for="username">Username:</label>
         <input type="text" id="username" name="username" required><br><br>
 
-        <!-- Password field -->
         <label for="password">Password:</label>
         <input type="password" id="password" name="password" required><br><br>
 

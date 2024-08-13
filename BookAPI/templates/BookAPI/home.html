@@ -5,12 +5,52 @@
 {% block content %}
 <h2>Welcome, {{ username }}!</h2>
 
+<h3>Item of the Day</h3>
+{% if item_of_the_day %}
+<p>{{ item_of_the_day.name }}</p>
+{% else %}
+<p>No item of the day set.</p>
+{% endif %}
+
 {% if is_manager %}
-<form action="{% url 'refresh_token' %}" method="post">
+<h3>Update Item of the Day</h3>
+<form id="update-item-form" method="POST">
     {% csrf_token %}
-    <button type="submit">Refresh Token</button>
-    <a href="home/assign_order">Assign Order</a>
+    <label for="search">Search menu item:</label>
+    <input type="text" id="search" class="search-box" placeholder="Type to search...">
+
+    <label for="item_id">Select item to set as item of the day:</label>
+    <select id="item_id" name="item_id" required>
+        <option value="">Select an item</option>
+        {% for item in menu_items %}
+        <option value="{{ item.id }}">{{ item.name }}</option>
+        {% endfor %}
+    </select><br><br>
+
+    <button type="submit" name="update_item_of_the_day">Update Item of the Day</button>
 </form>
+<script>
+    document.getElementById('search').addEventListener('input', function () {
+        var filter = this.value.toUpperCase();
+        var select = document.getElementById('item_id');
+        var options = select.getElementsByTagName('option');
+
+        for (var i = 1; i < options.length; i++) { 
+            var optionText = options[i].textContent || options[i].innerText;
+            if (optionText.toUpperCase().indexOf(filter) > -1) {
+                options[i].style.display = "";
+            } else {
+                options[i].style.display = "none";
+            }
+        }
+    });
+
+    document.getElementById('update-item-form').addEventListener('submit', function () {
+        setTimeout(function () {
+            location.reload();
+        }, 100);
+    });
+</script>
 {% endif %}
 
 <form action="{% url 'logout' %}" method="post">

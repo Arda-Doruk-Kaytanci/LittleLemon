@@ -1,25 +1,34 @@
 {% extends 'base.html' %}
 
-{% block title %}Manage Staff{% endblock %}
-
 {% block content %}
-<h2>Your Assigned Orders</h2>
+<h2>Orders for Delivery</h2>
 
-<!-- Display orders -->
 {% if orders %}
 <ul>
     {% for order in orders %}
     <li>
-        <h3>Order ID: {{ forloop.counter }}</h3>
+        <strong>Order ID:</strong> {{ order.id }}<br>
+        <strong>Items:</strong>
         <ul>
             {% for item in order.items.all %}
             <li>{{ item.item.name }} (x{{ item.quantity }})</li>
             {% endfor %}
         </ul>
+        {% if not order.delivered %}
+        <form method="post" action="{% url 'view_order' %}">
+            {% csrf_token %}
+            <input type="hidden" name="order_id" value="{{ order.id }}">
+            <button type="submit">Mark as Delivered</button>
+        </form>
+        <span>Status: In Progress</span>
+        {% else %}
+        <span>Status: Delivered</span>
+        {% endif %}
     </li>
     {% endfor %}
 </ul>
 {% else %}
-<p>You have no assigned orders.</p>
+<p>No orders to deliver.</p>
 {% endif %}
+
 {% endblock %}
