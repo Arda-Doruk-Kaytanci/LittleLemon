@@ -3,6 +3,21 @@
 {% block content %}
 <h2>Orders for Delivery</h2>
 
+<form method="get">
+    <label for="sort_by">Sort by:</label>
+    <select name="sort_by" id="sort_by" onchange="this.form.submit()">
+        <option value="">Select</option>
+        <option value="date" {% if request.GET.sort_by == 'date' %}selected{% endif %}>Date</option>
+        <option value="status" {% if request.GET.sort_by == 'status' %}selected{% endif %}>Status</option>
+    </select>
+
+    <label for="order">Order:</label>
+    <select name="order" id="order" onchange="this.form.submit()">
+        <option value="asc" {% if request.GET.order == 'asc' %}selected{% endif %}>Ascending</option>
+        <option value="desc" {% if request.GET.order == 'desc' %}selected{% endif %}>Descending</option>
+    </select>
+</form>
+
 {% if orders %}
 <ul>
     {% for order in orders %}
@@ -15,7 +30,7 @@
             {% endfor %}
         </ul>
         {% if not order.delivered %}
-        <form method="post" action="{% url 'view_order' %}">
+        <form method="post" action="{% url 'view_orders' %}">
             {% csrf_token %}
             <input type="hidden" name="order_id" value="{{ order.id }}">
             <button type="submit">Mark as Delivered</button>
@@ -27,6 +42,25 @@
     </li>
     {% endfor %}
 </ul>
+
+<div class="pagination">
+    <span class="step-links">
+        {% if orders.has_previous %}
+            <a href="?{% if request.GET.sort_by %}sort_by={{ request.GET.sort_by }}&{% endif %}{% if request.GET.order %}order={{ request.GET.order }}&{% endif %}page=1">&laquo; first</a>
+            <a href="?{% if request.GET.sort_by %}sort_by={{ request.GET.sort_by }}&{% endif %}{% if request.GET.order %}order={{ request.GET.order }}&{% endif %}page={{ orders.previous_page_number }}">previous</a>
+        {% endif %}
+
+        <span class="current">
+            Page {{ orders.number }} of {{ orders.paginator.num_pages }}.
+        </span>
+
+        {% if orders.has_next %}
+            <a href="?{% if request.GET.sort_by %}sort_by={{ request.GET.sort_by }}&{% endif %}{% if request.GET.order %}order={{ request.GET.order }}&{% endif %}page={{ orders.next_page_number }}">next</a>
+            <a href="?{% if request.GET.sort_by %}sort_by={{ request.GET.sort_by }}&{% endif %}{% if request.GET.order %}order={{ request.GET.order }}&{% endif %}page={{ orders.paginator.num_pages }}">last &raquo;</a>
+        {% endif %}
+    </span>
+</div>
+
 {% else %}
 <p>No orders to deliver.</p>
 {% endif %}

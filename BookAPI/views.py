@@ -271,7 +271,11 @@ def shop(request):
     elif sort_by == "price":
         items = items.order_by(f"{sort_prefix}price")
 
-    total_price = sum(item.price for item in items)
+    paginator = Paginator(items, 10)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    total_price = sum(item.price for item in page_obj)
 
     if request.method == "POST":
         item_id = request.POST.get("item_id")
@@ -290,10 +294,13 @@ def shop(request):
         request,
         "BookAPI/shop.html",
         {
-            "menu": items,
+            "menu": page_obj,
             "total": total_price,
             "categories": categories,
             "selected_category": category_id,
+            "sort_by": sort_by,
+            "order": order,
+            "search": search_query,
         },
     )
 
@@ -331,24 +338,20 @@ def view_cart(request):
 
         return redirect("cart")
 
-    # Sorting and Pagination
-    sort_by = request.GET.get("sort_by", "name")  # Default sorting by 'name'
-    sort_order = request.GET.get("order", "asc")  # Default to ascending order
+    sort_by = request.GET.get("sort_by", "name")
+    sort_order = request.GET.get("order", "asc")
 
-    # Define sorting fields
     sort_fields = {
         "name": "item__name",
         "price": "item__price",
         "quantity": "quantity",
     }
 
-    # Apply sorting and pagination
     sort_field = sort_fields.get(sort_by, "item__name")
     ordering = f"{'-' if sort_order == 'desc' else ''}{sort_field}"
     cart_items = CartItem.objects.filter(user=request.user).order_by(ordering)
 
-    # Pagination
-    paginator = Paginator(cart_items, 10)  # Show 10 items per page
+    paginator = Paginator(cart_items, 10)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
 
@@ -380,7 +383,21 @@ def view_orders(request):
             return redirect("view_orders")
 
         orders = Order.objects.filter(delivery_person=request.user)
-        return render(request, "BookAPI/vieworder.html", {"orders": orders})
+
+        sort_by = request.GET.get("sort_by", "")
+        order_by = request.GET.get("order", "asc")
+        sort_prefix = "-" if order_by == "desc" else ""
+        if sort_by == "date":
+            orders = orders.order_by(f"{sort_prefix}date")
+        elif sort_by == "status":
+            orders = orders.order_by(f"{sort_prefix}delivered")
+
+        paginator = Paginator(orders, 10)
+        page_number = request.GET.get("page")
+        page_obj = paginator.get_page(page_number)
+
+        return render(request, "BookAPI/vieworder.html", {"orders": page_obj})
+
     else:
         return redirect("home")
 
@@ -404,7 +421,7 @@ def assign_order_view(request):
                 order.delivery_person = delivery_person
                 order.save()
 
-                return redirect("assign_order")  #
+                return redirect("assign_order")
             except Order.DoesNotExist:
                 form.add_error("order_id", "The order does not exist.")
             except User.DoesNotExist:

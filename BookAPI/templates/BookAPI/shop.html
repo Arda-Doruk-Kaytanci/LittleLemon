@@ -4,7 +4,7 @@
 <h2>Shop</h2>
 
 <form method="get">
-    <input type="text" name="search" placeholder="Search by name" value="{{ request.GET.search }}">
+    <input type="text" name="search" placeholder="Search by name" value="{{ search }}">
     <button type="submit">Search</button>
 
     <select name="category" onchange="this.form.submit()">
@@ -18,13 +18,13 @@
 
     <select name="sort_by" onchange="this.form.submit()">
         <option value="">Sort By</option>
-        <option value="category" {% if request.GET.sort_by == 'category' %}selected{% endif %}>Category</option>
-        <option value="price" {% if request.GET.sort_by == 'price' %}selected{% endif %}>Price</option>
+        <option value="category" {% if sort_by == 'category' %}selected{% endif %}>Category</option>
+        <option value="price" {% if sort_by == 'price' %}selected{% endif %}>Price</option>
     </select>
 
     <select name="order" onchange="this.form.submit()">
-        <option value="asc" {% if request.GET.order == 'asc' %}selected{% endif %}>Ascending</option>
-        <option value="desc" {% if request.GET.order == 'desc' %}selected{% endif %}>Descending</option>
+        <option value="asc" {% if order == 'asc' %}selected{% endif %}>Ascending</option>
+        <option value="desc" {% if order == 'desc' %}selected{% endif %}>Descending</option>
     </select>
 </form>
 
@@ -43,4 +43,28 @@
 </ul>
 
 <p>Total Price: ${{ total }}</p>
+<div class="pagination">
+    <span class="step-links">
+        {% if page_obj.has_previous %}
+        <a
+            href="?{% if search %}search={{ search }}&{% endif %}{% if category_id %}category={{ category_id }}&{% endif %}{% if sort_by %}sort_by={{ sort_by }}&{% endif %}{% if order %}order={{ order }}&{% endif %}page=1">&laquo;
+            first</a>
+        <a
+            href="?{% if search %}search={{ search }}&{% endif %}{% if category_id %}category={{ category_id }}&{% endif %}{% if sort_by %}sort_by={{ sort_by }}&{% endif %}{% if order %}order={{ order }}&{% endif %}page={{ page_obj.previous_page_number }}">previous</a>
+        {% endif %}
+
+        <span class="current">
+            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
+        </span>
+
+        {% if page_obj.has_next %}
+        <a
+            href="?{% if search %}search={{ search }}&{% endif %}{% if category_id %}category={{ category_id }}&{% endif %}{% if sort_by %}sort_by={{ sort_by }}&{% endif %}{% if order %}order={{ order }}&{% endif %}page={{ page_obj.next_page_number }}">next</a>
+        <a
+            href="?{% if search %}search={{ search }}&{% endif %}{% if category_id %}category={{ category_id }}&{% endif %}{% if sort_by %}sort_by={{ sort_by }}&{% endif %}{% if order %}order={{ order }}&{% endif %}page={{ page_obj.paginator.num_pages }}">last
+            &raquo;</a>
+        {% endif %}
+    </span>
+</div>
+
 {% endblock %}
